@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Battery Opportunity Scanner",
+  title: "Lazer Up",
   description: "Emerging battery startup opportunities, before they're obvious.",
 };
 
@@ -35,7 +35,7 @@ export default function RootLayout({
                   </span>
                   <div className="leading-tight">
                     <p className="text-sm font-semibold tracking-tight">
-                      Battery Opportunity Scanner
+                      Lazer Up
                     </p>
                     <p className="text-xs text-neutral-500">
                       Spot the next battery startup early
@@ -59,7 +59,7 @@ export default function RootLayout({
 
             <footer className="border-t border-white/5">
               <div className="mx-auto max-w-6xl px-6 py-6 text-xs text-neutral-600">
-                Battery Opportunity Scanner — data refreshes automatically.
+                Lazer Up - data refreshes automatically.
               </div>
             </footer>
           </div>

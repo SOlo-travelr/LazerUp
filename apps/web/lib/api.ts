@@ -1,4 +1,4 @@
-// Typed client for the Battery Opportunity Scanner API.
+// Typed client for the Lazer Up API.
 // All calls run from the browser, so they target the public API URL.
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -184,6 +184,27 @@ export interface GeoIndustryMap {
   industry_risks: GeoIndustryRisk[];
 }
 
+export interface MarketHeadline {
+  title: string;
+  url: string | null;
+  published_at: string | null;
+  doc_type: string;
+  technologies: string[];
+}
+
+export interface MarketRegion {
+  region: string;
+  market_tier: string;
+  counts_by_doc_type: Record<string, number>;
+  top_technologies: string[];
+  headlines: MarketHeadline[];
+}
+
+export interface MarketHeadlines {
+  major_markets: MarketRegion[];
+  minor_markets: MarketRegion[];
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -221,6 +242,10 @@ export const api = {
   marketCapitalMap: (days = 180, sectors = 10, hotspots = 12) =>
     getJson<CapitalMap>(
       `/api/v1/markets/capital-map?days=${days}&sectors=${sectors}&hotspots=${hotspots}`,
+    ),
+  marketHeadlines: (days = 90, perRegion = 6) =>
+    getJson<MarketHeadlines>(
+      `/api/v1/markets/headlines?days=${days}&per_region=${perRegion}`,
     ),
   geoIndustryMap: (days = 180, limit = 12) =>
     getJson<GeoIndustryMap>(

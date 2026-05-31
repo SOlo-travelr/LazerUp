@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Battery Opportunity Scanner API",
+    title="Lazer Up API",
     version="0.1.0",
     lifespan=lifespan,
 )
