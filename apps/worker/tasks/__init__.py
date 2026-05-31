@@ -1,8 +1,10 @@
 """Celery tasks — thin wrappers around pipeline functions."""
 
+from analytics.report import build_weekly_report as _report
 from celery_app import celery
 from pipeline.embed import embed_new_documents as _embed
 from pipeline.ingest import run_all_connectors as _run_all
+from pipeline.run_analytics import run_analytics as _analytics
 
 
 @celery.task(name="tasks.run_all_connectors")
@@ -15,7 +17,11 @@ def embed_new_documents() -> dict:
     return _embed()
 
 
+@celery.task(name="tasks.compute_analytics")
+def compute_analytics() -> dict:
+    return _analytics()
+
+
 @celery.task(name="tasks.generate_weekly_report")
 def generate_weekly_report() -> dict:
-    # Implemented in milestone M9 (weekly report generator).
-    return {"status": "noop", "stage": "weekly_report"}
+    return _report()
