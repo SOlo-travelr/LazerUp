@@ -11,6 +11,10 @@ beat_schedule = {
         "task": "tasks.tag_documents",
         "schedule": crontab(hour=4, minute=45),  # after ingestion, before embeddings
     },
+    "daily-linkage": {
+        "task": "tasks.build_linkage_graph",
+        "schedule": crontab(hour=4, minute=50),  # after tagging, before embeddings
+    },
     "daily-embeddings": {
         "task": "tasks.embed_new_documents",
         "schedule": crontab(hour=5, minute=0),

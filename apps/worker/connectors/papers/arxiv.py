@@ -42,6 +42,10 @@ class ArxivConnector(BaseConnector):
         root = ET.fromstring(resp.text)
         for entry in root.findall("a:entry", ns):
             ext_id = (entry.findtext("a:id", default="", namespaces=ns) or "").strip()
+            authors = [
+                (author.findtext("a:name", default="", namespaces=ns) or "").strip()
+                for author in entry.findall("a:author", ns)
+            ]
             yield RawRecord(
                 external_id=ext_id,
                 payload={
@@ -49,6 +53,7 @@ class ArxivConnector(BaseConnector):
                     "summary": (entry.findtext("a:summary", "", ns) or "").strip(),
                     "published": entry.findtext("a:published", "", ns),
                     "link": ext_id,
+                    "authors": [a for a in authors if a],
                 },
             )
 
@@ -68,5 +73,5 @@ class ArxivConnector(BaseConnector):
             abstract=raw.payload.get("summary"),
             url=raw.payload.get("link"),
             published_at=published or date.today(),
-            metadata={"source": "arxiv"},
+            metadata={"source": "arxiv", "authors": raw.payload.get("authors", [])},
         )

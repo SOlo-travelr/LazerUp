@@ -157,3 +157,125 @@ class WeeklyReportOut(BaseModel):
     week_start: date
     payload: dict
     generated_at: datetime | None = None
+
+
+# ----- Linkage -----
+
+
+class LinkageEntity(BaseModel):
+    id: UUID
+    name: str
+    count: int = 0
+    extra: dict = Field(default_factory=dict)
+
+
+class LinkageChainSample(BaseModel):
+    paper_title: str
+    inventor: str
+    patent_title: str
+    assignee: str | None = None
+    grant_title: str | None = None
+    company: str | None = None
+
+
+class TechnologyLinkageSummary(BaseModel):
+    papers: int
+    patents: int
+    grants: int
+    researchers: int
+    inventors: int
+    companies: int
+    commercialization_stage: str
+
+
+class TechnologyLinkageOut(BaseModel):
+    technology: TechnologyOut
+    summary: TechnologyLinkageSummary
+    top_inventors: list[LinkageEntity]
+    top_companies: list[LinkageEntity]
+    top_labs: list[LinkageEntity]
+    chain_samples: list[LinkageChainSample]
+
+
+class TechnologyGapItem(BaseModel):
+    technology_slug: str
+    technology_name: str
+    papers: int = 0
+    patents: int = 0
+    grants: int = 0
+    startups: int = 0
+
+
+class PersonInsightItem(BaseModel):
+    person_name: str
+    affiliation: str | None = None
+    paper_docs: int = 0
+    patent_docs: int = 0
+
+
+class CompanyInsightItem(BaseModel):
+    organization: str
+    patent_docs: int = 0
+    non_patent_mentions: int = 0
+
+
+class LinkageInsightsOut(BaseModel):
+    technologies_lab_to_commercialization: list[TechnologyGapItem]
+    professors_labs_with_patentable_work: list[PersonInsightItem]
+    quiet_patent_filers: list[CompanyInsightItem]
+    grant_rich_startup_poor_areas: list[TechnologyGapItem]
+    patent_rich_low_academic_areas: list[TechnologyGapItem]
+
+
+# ----- Markets -----
+
+
+class HeadlineItem(BaseModel):
+    title: str
+    url: str | None = None
+    published_at: date | None = None
+    doc_type: str
+    technologies: list[str] = Field(default_factory=list)
+
+
+class MarketRegionOut(BaseModel):
+    region: str
+    market_tier: str
+    counts_by_doc_type: dict[str, int]
+    top_technologies: list[str]
+    headlines: list[HeadlineItem]
+
+
+class MarketHeadlinesOut(BaseModel):
+    major_markets: list[MarketRegionOut]
+    minor_markets: list[MarketRegionOut]
+
+
+class SectorCapitalItem(BaseModel):
+    sector: str
+    documents: int
+    papers: int
+    patents: int
+    grants: int
+    company_presence: int
+    funding_usd: float
+    avg_trend_score: float
+    capital_attractiveness: float
+    wealth_thesis: str
+
+
+class RegionalCapitalItem(BaseModel):
+    region: str
+    market_tier: str
+    sector: str
+    document_signals: int
+    company_presence: int
+    funding_usd: float
+    capital_attractiveness: float
+    wealth_thesis: str
+
+
+class MarketCapitalMapOut(BaseModel):
+    majority_sectors: list[SectorCapitalItem]
+    major_market_hotspots: list[RegionalCapitalItem]
+    minor_market_hotspots: list[RegionalCapitalItem]
