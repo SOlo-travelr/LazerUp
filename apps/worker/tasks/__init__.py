@@ -1,6 +1,7 @@
 """Celery tasks — thin wrappers around pipeline functions."""
 
 from celery_app import celery
+from pipeline.embed import embed_new_documents as _embed
 from pipeline.ingest import run_all_connectors as _run_all
 
 
@@ -11,8 +12,7 @@ def run_all_connectors() -> dict:
 
 @celery.task(name="tasks.embed_new_documents")
 def embed_new_documents() -> dict:
-    # Implemented in milestone M4 (embedding pipeline).
-    return {"status": "noop", "stage": "embeddings"}
+    return _embed()
 
 
 @celery.task(name="tasks.generate_weekly_report")
