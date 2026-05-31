@@ -11,10 +11,14 @@ import httpx
 
 from connectors.base import BaseConnector, NormalizedDocument, RawRecord
 
-# Default battery-industry feeds; extend via the source registry config.
+# Default battery-industry feeds spanning research, manufacturing, supply chain,
+# mining/materials and grid storage; extend via the source registry config.
 DEFAULT_FEEDS = [
     "https://www.energy-storage.news/feed/",
     "https://electrek.co/feed/",
+    "https://www.mining.com/feed/",
+    "https://thedriven.io/feed/",
+    "https://www.pv-magazine.com/feed/",
 ]
 
 

@@ -12,7 +12,14 @@ from typing import Iterable
 from connectors.base import BaseConnector, NormalizedDocument, RawRecord, http_get
 
 ARXIV_API = "https://export.arxiv.org/api/query"
-QUERY = 'all:"solid-state battery" OR all:"lithium battery" OR all:"sodium-ion"'
+# Broad battery value-chain coverage: chemistries, materials, manufacturing,
+# recycling and grid storage (kept within cond-mat/physics relevance).
+QUERY = (
+    'all:"solid-state battery" OR all:"lithium-ion battery" OR all:"sodium-ion" '
+    'OR all:"lithium metal anode" OR all:"silicon anode" OR all:"solid electrolyte" '
+    'OR all:"lithium-sulfur" OR all:"flow battery" OR all:"battery recycling" '
+    'OR all:"cathode material" OR all:"grid energy storage"'
+)
 
 
 class ArxivConnector(BaseConnector):

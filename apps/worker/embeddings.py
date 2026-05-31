@@ -67,21 +67,36 @@ class OllamaEmbeddingProvider:
 
     enabled = True
 
-    def __init__(self, base_url: str, model: str, dim: int) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        dim: int,
+        micro_batch: int = 8,
+        timeout: float = 300.0,
+    ) -> None:
         self._url = base_url.rstrip("/") + "/api/embed"
         self.model = model
         self.dim = dim
+        self._micro_batch = max(1, micro_batch)
+        self._timeout = timeout
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
-        resp = httpx.post(
-            self._url,
-            json={"model": self.model, "input": texts},
-            timeout=180,
-        )
-        resp.raise_for_status()
-        return resp.json()["embeddings"]
+        # Heavier local models (e.g. bge-m3 on CPU) can exceed an HTTP timeout
+        # if the whole batch is sent at once, so split into small chunks.
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), self._micro_batch):
+            chunk = texts[start : start + self._micro_batch]
+            resp = httpx.post(
+                self._url,
+                json={"model": self.model, "input": chunk},
+                timeout=self._timeout,
+            )
+            resp.raise_for_status()
+            vectors.extend(resp.json()["embeddings"])
+        return vectors
 
 
 def get_embedding_provider() -> EmbeddingProvider:

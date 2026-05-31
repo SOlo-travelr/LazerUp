@@ -22,7 +22,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import settings
@@ -111,6 +111,9 @@ class Technology(Base):
     category: Mapped[str] = mapped_column(String, nullable=False)
     parent_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("technology.id")
+    )
+    aliases: Mapped[list[str]] = mapped_column(
+        ARRAY(String), default=list, nullable=False
     )
     description: Mapped[str | None] = mapped_column(Text)
 

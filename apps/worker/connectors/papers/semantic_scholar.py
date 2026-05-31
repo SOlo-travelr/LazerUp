@@ -10,7 +10,11 @@ from connectors.base import BaseConnector, NormalizedDocument, RawRecord, http_g
 
 S2_API = "https://api.semanticscholar.org/graph/v1/paper/search"
 FIELDS = "title,abstract,year,url,externalIds,publicationDate"
-QUERY = "solid-state battery OR lithium metal anode OR sodium-ion battery"
+QUERY = (
+    "solid-state battery OR lithium metal anode OR sodium-ion battery OR "
+    "silicon anode OR cathode material OR battery recycling OR "
+    "grid energy storage OR lithium-sulfur battery"
+)
 
 
 class SemanticScholarConnector(BaseConnector):

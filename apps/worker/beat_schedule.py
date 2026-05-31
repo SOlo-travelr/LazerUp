@@ -7,6 +7,10 @@ beat_schedule = {
         "task": "tasks.run_all_connectors",
         "schedule": crontab(hour=4, minute=0),  # 04:00 UTC daily
     },
+    "daily-tagging": {
+        "task": "tasks.tag_documents",
+        "schedule": crontab(hour=4, minute=45),  # after ingestion, before embeddings
+    },
     "daily-embeddings": {
         "task": "tasks.embed_new_documents",
         "schedule": crontab(hour=5, minute=0),
