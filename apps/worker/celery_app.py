@@ -13,7 +13,8 @@ celery.conf.update(
     enable_utc=True,
 )
 
-celery.autodiscover_tasks(["tasks"])
+# Register tasks explicitly to avoid module-path issues in container startup.
+import tasks  # noqa: F401,E402
 
 # Register the daily schedule.
 from beat_schedule import beat_schedule  # noqa: E402

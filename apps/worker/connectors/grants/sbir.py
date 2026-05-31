@@ -5,9 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Iterable
 
-import httpx
-
-from connectors.base import BaseConnector, NormalizedDocument, RawRecord
+from connectors.base import BaseConnector, NormalizedDocument, RawRecord, http_get
 
 SBIR_API = "https://api.www.sbir.gov/public/api/awards"
 KEYWORD = "battery"
@@ -18,12 +16,10 @@ class SBIRConnector(BaseConnector):
     kind = "grant"
 
     def fetch(self, since: str | None, rows: int = 25) -> Iterable[RawRecord]:
-        resp = httpx.get(
+        resp = http_get(
             SBIR_API,
             params={"keyword": KEYWORD, "rows": rows, "format": "json"},
-            timeout=30,
         )
-        resp.raise_for_status()
         for award in resp.json() or []:
             ext_id = str(award.get("contract") or award.get("award_link") or award.get("firm", ""))
             yield RawRecord(external_id=ext_id, payload=award)

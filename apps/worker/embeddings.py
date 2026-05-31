@@ -28,7 +28,7 @@ class NullEmbeddingProvider:
     enabled = False
     model = "none"
 
-    def __init__(self, dim: int = 3072) -> None:
+    def __init__(self, dim: int = 1536) -> None:
         self.dim = dim
 
     def embed(self, texts: list[str]) -> list[list[float]]:
@@ -46,10 +46,15 @@ class OpenAIEmbeddingProvider:
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
+        payload: dict = {"model": self.model, "input": texts}
+        # text-embedding-3-* support truncating to a smaller dimension, keeping
+        # vectors within pgvector's HNSW limit (<=2000) while staying high-quality.
+        if self.dim:
+            payload["dimensions"] = self.dim
         resp = httpx.post(
             OPENAI_EMBEDDINGS_URL,
             headers={"Authorization": f"Bearer {self._api_key}"},
-            json={"model": self.model, "input": texts},
+            json=payload,
             timeout=60,
         )
         resp.raise_for_status()
@@ -57,10 +62,36 @@ class OpenAIEmbeddingProvider:
         return [d["embedding"] for d in data]
 
 
+class OllamaEmbeddingProvider:
+    """Local embeddings via an Ollama server (e.g. nomic-embed-text, bge-m3)."""
+
+    enabled = True
+
+    def __init__(self, base_url: str, model: str, dim: int) -> None:
+        self._url = base_url.rstrip("/") + "/api/embed"
+        self.model = model
+        self.dim = dim
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        resp = httpx.post(
+            self._url,
+            json={"model": self.model, "input": texts},
+            timeout=180,
+        )
+        resp.raise_for_status()
+        return resp.json()["embeddings"]
+
+
 def get_embedding_provider() -> EmbeddingProvider:
-    key = os.getenv("OPENAI_API_KEY", "")
+    provider = os.getenv("EMBEDDING_PROVIDER", "openai").lower()
     model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
-    dim = int(os.getenv("EMBEDDING_DIM", "3072"))
+    dim = int(os.getenv("EMBEDDING_DIM", "1536"))
+    if provider == "ollama":
+        base_url = os.getenv("OLLAMA_URL", "http://ollama:11434")
+        return OllamaEmbeddingProvider(base_url=base_url, model=model, dim=dim)
+    key = os.getenv("OPENAI_API_KEY", "")
     if key and not key.startswith("sk-replace"):
         return OpenAIEmbeddingProvider(api_key=key, model=model, dim=dim)
     return NullEmbeddingProvider(dim=dim)

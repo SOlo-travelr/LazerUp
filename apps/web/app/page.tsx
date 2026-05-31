@@ -1,57 +1,65 @@
-import { api, type TrendItem } from "@/lib/api";
+"use client";
 
-async function fetchTrends(): Promise<TrendItem[]> {
-  try {
-    return await api.trends();
-  } catch {
-    return [];
-  }
-}
+import { useState } from "react";
+import { AskHero } from "@/components/AskHero";
+import {
+  BottlenecksPanel,
+  OpportunitiesPanel,
+  ReportPanel,
+  TrendsPanel,
+  WhiteSpacePanel,
+} from "@/components/Panels";
 
-export default async function HomePage() {
-  const trends = await fetchTrends();
+const TABS = [
+  { id: "trends", label: "Trends", hint: "What's heating up" },
+  { id: "opportunities", label: "Opportunities", hint: "Startup angles" },
+  { id: "whitespace", label: "White space", hint: "Underserved areas" },
+  { id: "bottlenecks", label: "Bottlenecks", hint: "Recurring problems" },
+  { id: "report", label: "Weekly report", hint: "The briefing" },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
+export default function HomePage() {
+  const [tab, setTab] = useState<TabId>("trends");
+  const active = TABS.find((t) => t.id === tab)!;
 
   return (
-    <main className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Battery Opportunity Scanner
-        </h1>
-        <p className="text-neutral-400">
-          Emerging battery startup opportunities, technology white spaces, and
-          funding trends — before they become obvious.
-        </p>
-      </header>
+    <div className="space-y-8">
+      <AskHero />
 
-      <section>
-        <h2 className="mb-4 text-xl font-medium">Trending technologies</h2>
-        {trends.length === 0 ? (
-          <p className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-neutral-400">
-            No trend data yet. Run <code className="text-neutral-200">make migrate</code>,
-            <code className="text-neutral-200"> make seed</code>, then start the API.
-          </p>
-        ) : (
-          <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900">
-            {trends.map((t) => (
-              <li
-                key={t.technology.id}
-                className="flex items-center justify-between px-4 py-3"
-              >
-                <div>
-                  <span className="mr-3 text-neutral-500">#{t.rank}</span>
-                  <span className="font-medium">{t.technology.name}</span>
-                  <span className="ml-2 text-sm text-neutral-500">
-                    {t.technology.category}
-                  </span>
-                </div>
-                <span className="tabular-nums text-neutral-300">
-                  {t.composite_score.toFixed(2)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <section className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`rounded-xl px-3.5 py-2 text-sm font-medium transition ${
+                tab === t.id
+                  ? "bg-white/10 text-white"
+                  : "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">
+            {active.label}
+          </h2>
+          <span className="text-sm text-neutral-500">{active.hint}</span>
+        </div>
+
+        <div>
+          {tab === "trends" && <TrendsPanel />}
+          {tab === "opportunities" && <OpportunitiesPanel />}
+          {tab === "whitespace" && <WhiteSpacePanel />}
+          {tab === "bottlenecks" && <BottlenecksPanel />}
+          {tab === "report" && <ReportPanel />}
+        </div>
       </section>
-    </main>
+    </div>
   );
 }

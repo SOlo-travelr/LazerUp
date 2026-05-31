@@ -10,12 +10,18 @@ as designed.
 """
 from collections.abc import Sequence
 
+import os
+
 from alembic import op
 
 revision: str = "0001"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+
+# Vector size follows the configured embedding model (e.g. nomic-embed-text=768,
+# bge-m3=1024, text-embedding-3-large=1536). Stays within pgvector's HNSW limit.
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "1536"))
 
 
 def upgrade() -> None:
@@ -67,11 +73,15 @@ def upgrade() -> None:
         CREATE TABLE document_embedding (
             document_id UUID PRIMARY KEY REFERENCES document(id) ON DELETE CASCADE,
             model       TEXT NOT NULL DEFAULT 'text-embedding-3-large',
-            embedding   vector(3072) NOT NULL,
+            embedding   vector("""
+        + str(EMBEDDING_DIM)
+        + """) NOT NULL,
             created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
         );
+        -- Dim stays within pgvector's HNSW limit (<=2000), enabling an
+        -- approximate-nearest-neighbor index for fast semantic search.
         CREATE INDEX idx_doc_embedding_hnsw ON document_embedding
-            USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+            USING hnsw (embedding vector_cosine_ops);
 
         CREATE TABLE technology (
             id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -81,7 +91,9 @@ def upgrade() -> None:
             parent_id   UUID REFERENCES technology(id),
             aliases     TEXT[] NOT NULL DEFAULT '{}',
             description TEXT,
-            embedding   vector(3072)
+            embedding   vector("""
+        + str(EMBEDDING_DIM)
+        + """)
         );
 
         CREATE TABLE organization (
@@ -232,7 +244,9 @@ def upgrade() -> None:
             skills         TEXT[] NOT NULL DEFAULT '{}',
             experience     JSONB,
             research_areas TEXT[] NOT NULL DEFAULT '{}',
-            embedding      vector(3072),
+            embedding      vector("""
+        + str(EMBEDDING_DIM)
+        + """),
             created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
         );
 

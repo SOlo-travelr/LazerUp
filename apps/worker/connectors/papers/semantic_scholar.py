@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from datetime import date
 from typing import Iterable
 
-import httpx
-
-from connectors.base import BaseConnector, NormalizedDocument, RawRecord
+from connectors.base import BaseConnector, NormalizedDocument, RawRecord, http_get
 
 S2_API = "https://api.semanticscholar.org/graph/v1/paper/search"
 FIELDS = "title,abstract,year,url,externalIds,publicationDate"
@@ -19,12 +18,15 @@ class SemanticScholarConnector(BaseConnector):
     kind = "paper"
 
     def fetch(self, since: str | None, limit: int = 50) -> Iterable[RawRecord]:
-        resp = httpx.get(
+        headers = {}
+        api_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY", "")
+        if api_key:
+            headers["x-api-key"] = api_key
+        resp = http_get(
             S2_API,
             params={"query": QUERY, "fields": FIELDS, "limit": limit},
-            timeout=30,
+            headers=headers or None,
         )
-        resp.raise_for_status()
         for paper in resp.json().get("data", []):
             ext = paper.get("externalIds", {}) or {}
             ext_id = ext.get("DOI") or paper.get("paperId") or ""

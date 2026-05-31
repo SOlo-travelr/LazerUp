@@ -9,11 +9,9 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Iterable
 
-import httpx
+from connectors.base import BaseConnector, NormalizedDocument, RawRecord, http_get
 
-from connectors.base import BaseConnector, NormalizedDocument, RawRecord
-
-ARXIV_API = "http://export.arxiv.org/api/query"
+ARXIV_API = "https://export.arxiv.org/api/query"
 QUERY = 'all:"solid-state battery" OR all:"lithium battery" OR all:"sodium-ion"'
 
 
@@ -29,8 +27,7 @@ class ArxivConnector(BaseConnector):
             "sortBy": "submittedDate",
             "sortOrder": "descending",
         }
-        resp = httpx.get(ARXIV_API, params=params, timeout=30)
-        resp.raise_for_status()
+        resp = http_get(ARXIV_API, params=params)
         # Atom XML parsing kept minimal for the skeleton; replace with feedparser.
         import xml.etree.ElementTree as ET
 

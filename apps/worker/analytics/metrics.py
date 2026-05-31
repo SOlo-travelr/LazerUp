@@ -63,9 +63,9 @@ def startup_density(conn: Connection) -> dict[str, int]:
     rows = conn.execute(
         text(
             """
-            SELECT dt.technology_id AS tech, COUNT(DISTINCT do.organization_id) AS orgs
+            SELECT dt.technology_id AS tech, COUNT(DISTINCT dorg.organization_id) AS orgs
             FROM document_technology dt
-            JOIN document_organization do ON do.document_id = dt.document_id
+            JOIN document_organization dorg ON dorg.document_id = dt.document_id
             GROUP BY dt.technology_id
             """
         )

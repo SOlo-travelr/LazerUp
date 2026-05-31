@@ -16,8 +16,10 @@ class Settings(BaseSettings):
 
     # OpenAI
     openai_api_key: str = "sk-replace-me"
+    embedding_provider: str = "openai"
     embedding_model: str = "text-embedding-3-large"
-    embedding_dim: int = 3072
+    embedding_dim: int = 1536
+    ollama_url: str = "http://ollama:11434"
     extraction_model: str = "gpt-4o-mini"
     synthesis_model: str = "gpt-4o"
 

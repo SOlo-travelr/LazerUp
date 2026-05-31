@@ -7,5 +7,34 @@
 }
 
 body {
-  @apply bg-neutral-950 text-neutral-100;
+  @apply bg-neutral-950 text-neutral-100 antialiased;
+  background-image: radial-gradient(
+      60rem 60rem at 100% -10%,
+      rgba(16, 185, 129, 0.08),
+      transparent 60%
+    ),
+    radial-gradient(50rem 50rem at -10% 0%, rgba(56, 189, 248, 0.06), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* Subtle, unobtrusive scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/5 bg-neutral-900/60 backdrop-blur-sm;
+  }
 }

@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date
 from typing import Iterable
 
 import httpx
 
-from connectors.base import BaseConnector, NormalizedDocument, RawRecord
+from connectors.base import (
+    BaseConnector,
+    NormalizedDocument,
+    RawRecord,
+    http_get,
+    logger,
+)
 
 PATENTSVIEW_API = "https://search.patentsview.org/api/v1/patent/"
 QUERY = {
@@ -36,8 +43,19 @@ class PatentsViewConnector(BaseConnector):
             "f": json.dumps(FIELDS),
             "o": json.dumps({"size": per_page}),
         }
-        resp = httpx.get(PATENTSVIEW_API, params=params, timeout=30)
-        resp.raise_for_status()
+        headers = {}
+        api_key = os.getenv("PATENTSVIEW_API_KEY", "")
+        if api_key:
+            headers["X-Api-Key"] = api_key
+        try:
+            resp = http_get(PATENTSVIEW_API, params=params, headers=headers or None)
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            # Host unreachable (e.g. DNS failure in restricted networks): skip
+            # this source gracefully instead of failing the whole ingest run.
+            logger.warning(
+                "patentsview unreachable, skipping source: %s", exc.__class__.__name__
+            )
+            return
         for patent in resp.json().get("patents", []) or []:
             yield RawRecord(external_id=str(patent.get("patent_id", "")), payload=patent)
 
