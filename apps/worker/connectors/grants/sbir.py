@@ -16,11 +16,24 @@ class SBIRConnector(BaseConnector):
     kind = "grant"
 
     def fetch(self, since: str | None, rows: int = 25) -> Iterable[RawRecord]:
+        since_year = None
+        if since:
+            try:
+                since_year = date.fromisoformat(since).year
+            except ValueError:
+                since_year = None
         resp = http_get(
             SBIR_API,
             params={"keyword": KEYWORD, "rows": rows, "format": "json"},
         )
         for award in resp.json() or []:
+            year = award.get("award_year")
+            try:
+                award_year = int(year) if year else None
+            except (TypeError, ValueError):
+                award_year = None
+            if since_year and award_year and award_year <= since_year:
+                continue
             ext_id = str(award.get("contract") or award.get("award_link") or award.get("firm", ""))
             yield RawRecord(external_id=ext_id, payload=award)
 

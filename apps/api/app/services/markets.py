@@ -8,11 +8,15 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.schemas import (
+    CountryIndustryItem,
+    CountryRiskItem,
     HeadlineItem,
     MarketCapitalMapOut,
+    MarketGeoIndustryOut,
     MarketHeadlinesOut,
     MarketRegionOut,
     RegionalCapitalItem,
+    IndustryRiskItem,
     SectorCapitalItem,
 )
 
@@ -55,7 +59,7 @@ _SELECT_DOCS = text(
 
 _SELECT_DOC_TECH = text(
     """
-    SELECT dt.document_id, t.name
+    SELECT dt.document_id, t.name, t.category
     FROM document_technology dt
     JOIN technology t ON t.id = dt.technology_id
     """
@@ -119,6 +123,47 @@ _SECTOR_METRICS = text(
         LEFT JOIN sector_orgs so ON so.sector = sd.sector
         LEFT JOIN sector_funding sf ON sf.sector = sd.sector
         GROUP BY sd.sector, so.company_presence, sf.funding_usd
+        ORDER BY documents DESC
+        """
+)
+
+_COUNTRY_INDUSTRY = text(
+        """
+        SELECT
+            coalesce(org.country, 'Unknown') AS country,
+            t.category AS sector,
+            COUNT(DISTINCT d.id)::int AS documents,
+            COUNT(*) FILTER (WHERE d.doc_type = 'paper')::int AS papers,
+            COUNT(*) FILTER (WHERE d.doc_type = 'patent')::int AS patents,
+            COUNT(*) FILTER (WHERE d.doc_type = 'grant')::int AS grants,
+            COUNT(DISTINCT org.id)::int AS organizations
+        FROM document_technology dt
+        JOIN technology t ON t.id = dt.technology_id
+        JOIN document d ON d.id = dt.document_id
+        LEFT JOIN document_organization dorg ON dorg.document_id = d.id
+        LEFT JOIN organization org ON org.id = dorg.organization_id
+        WHERE d.published_at >= :start_date
+            AND coalesce(org.country, '') <> ''
+        GROUP BY coalesce(org.country, 'Unknown'), t.category
+        ORDER BY documents DESC
+        """
+)
+
+_INDUSTRY_RISKS = text(
+        """
+        SELECT
+            t.category AS sector,
+            COUNT(DISTINCT coalesce(org.country, 'Unknown'))::int AS countries,
+            COUNT(DISTINCT d.id)::int AS documents,
+            COUNT(*) FILTER (WHERE d.doc_type = 'patent')::int AS patents
+        FROM document_technology dt
+        JOIN technology t ON t.id = dt.technology_id
+        JOIN document d ON d.id = dt.document_id
+        LEFT JOIN document_organization dorg ON dorg.document_id = d.id
+        LEFT JOIN organization org ON org.id = dorg.organization_id
+        WHERE d.published_at >= :start_date
+            AND coalesce(org.country, '') <> ''
+        GROUP BY t.category
         ORDER BY documents DESC
         """
 )
@@ -227,6 +272,21 @@ def _wealth_thesis(sector: str, patents: int, grants: int, companies: int, trend
     return f"{sector} is building signal; selective capital with partnerships is best."
 
 
+def _risk_factors_for(documents: int, papers: int, patents: int, grants: int, organizations: int) -> list[str]:
+    factors: list[str] = []
+    if papers >= 4 and patents == 0:
+        factors.append("IP gap")
+    if grants > 0 and organizations < 3:
+        factors.append("startup density gap")
+    if documents > 10 and organizations < 3:
+        factors.append("translation bottleneck")
+    if papers > 5 and patents == 0:
+        factors.append("patent gap")
+    if not factors:
+        factors.append("execution risk")
+    return factors
+
+
 def get_market_capital_map(
     db: Session,
     days: int = 180,
@@ -331,4 +391,166 @@ def get_market_capital_map(
         majority_sectors=majority,
         major_market_hotspots=_region_hotspots(by_region.major_markets),
         minor_market_hotspots=_region_hotspots(by_region.minor_markets),
+    )
+
+
+def get_market_geo_industry_map(
+    db: Session,
+    days: int = 180,
+    limit: int = 12,
+) -> MarketGeoIndustryOut:
+    start_date = date.today() - timedelta(days=max(days, 1))
+    docs = db.execute(_SELECT_DOCS, {"start_date": start_date}).mappings().all()
+    doc_tech_rows = db.execute(_SELECT_DOC_TECH).mappings().all()
+    opp_rows = db.execute(
+        text(
+            """
+            SELECT t.category AS sector,
+                   o.title,
+                   o.score
+            FROM opportunity o
+            LEFT JOIN technology t ON t.id = o.technology_id
+            WHERE o.status = 'active'
+            ORDER BY t.category, o.score DESC
+            """
+        )
+    ).mappings().all()
+
+    doc_org_rows = db.execute(
+        text(
+            """
+            SELECT dorg.document_id, COUNT(DISTINCT dorg.organization_id)::int AS organizations
+            FROM document_organization dorg
+            GROUP BY dorg.document_id
+            """
+        )
+    ).mappings().all()
+
+    tech_by_document: dict[str, list[str]] = {}
+    sector_by_document: dict[str, list[str]] = {}
+    for row in doc_tech_rows:
+        did = str(row["document_id"])
+        tech_by_document.setdefault(did, []).append(row["name"])
+        sector_by_document.setdefault(did, []).append(row["category"])
+
+    org_count_by_document = {str(row["document_id"]): int(row["organizations"] or 0) for row in doc_org_rows}
+
+    opportunities_by_sector: dict[str, list[str]] = {}
+    for row in opp_rows:
+        sector = row["sector"] or "Unknown"
+        opportunities_by_sector.setdefault(sector, []).append(row["title"])
+
+    country_sector_stats: dict[tuple[str, str], dict[str, int]] = {}
+    for row in docs:
+        text_blob = f"{row['title'] or ''} {row['abstract'] or ''}"
+        regions = _regions_for(text_blob)
+        doc_id = str(row["id"])
+        doc_type = (row["doc_type"] or "unknown").strip().lower()
+        sectors = sector_by_document.get(doc_id) or ["Unknown"]
+        organizations = org_count_by_document.get(doc_id, 0)
+        for region in regions:
+            for sector in sectors:
+                bucket = country_sector_stats.setdefault(
+                    (region, sector),
+                    {
+                        "documents": 0,
+                        "papers": 0,
+                        "patents": 0,
+                        "grants": 0,
+                        "organizations": 0,
+                    },
+                )
+                bucket["documents"] += 1
+                bucket["organizations"] += organizations
+                if doc_type == "paper":
+                    bucket["papers"] += 1
+                elif doc_type == "patent":
+                    bucket["patents"] += 1
+                elif doc_type == "grant":
+                    bucket["grants"] += 1
+
+    country_industry: list[CountryIndustryItem] = []
+    for (country, sector), stats in sorted(country_sector_stats.items(), key=lambda item: item[1]["documents"], reverse=True)[:limit]:
+        opp_titles = opportunities_by_sector.get(sector, [])[:4]
+        risk_factors = _risk_factors_for(
+            documents=stats["documents"],
+            papers=stats["papers"],
+            patents=stats["patents"],
+            grants=stats["grants"],
+            organizations=stats["organizations"],
+        )
+        country_industry.append(
+            CountryIndustryItem(
+                country=country,
+                sector=sector,
+                documents=stats["documents"],
+                papers=stats["papers"],
+                patents=stats["patents"],
+                grants=stats["grants"],
+                organizations=stats["organizations"],
+                opportunities=len(opp_titles),
+                risk_score=round(min(1.0, 0.25 + 0.1 * len(risk_factors) + 0.02 * stats["documents"]), 6),
+                risk_factors=risk_factors,
+                top_opportunities=opp_titles,
+            )
+        )
+
+    country_risks = sorted(
+        [
+            CountryRiskItem(
+                country=country,
+                sector=sector,
+                risk_score=round(min(1.0, 0.3 + 0.12 * stats["documents"] + 0.15 * (1 if stats["patents"] == 0 else 0)), 6),
+                risk_factors=_risk_factors_for(
+                    documents=stats["documents"],
+                    papers=stats["papers"],
+                    patents=stats["patents"],
+                    grants=stats["grants"],
+                    organizations=stats["organizations"],
+                ),
+                top_opportunities=opportunities_by_sector.get(sector, [])[:3],
+            )
+            for (country, sector), stats in country_sector_stats.items()
+        ],
+        key=lambda x: x.risk_score,
+        reverse=True,
+    )[:limit]
+
+    industry_totals: dict[str, dict[str, int]] = {}
+    for (country, sector), stats in country_sector_stats.items():
+        bucket = industry_totals.setdefault(
+            sector,
+            {"countries": 0, "documents": 0, "patents": 0, "organizations": 0},
+        )
+        bucket["countries"] += 1
+        bucket["documents"] += stats["documents"]
+        bucket["patents"] += stats["patents"]
+        bucket["organizations"] += stats["organizations"]
+
+    industry_risks = sorted(
+        [
+            IndustryRiskItem(
+                sector=sector,
+                countries=stats["countries"],
+                documents=stats["documents"],
+                opportunities=len(opportunities_by_sector.get(sector, [])),
+                risk_score=round(min(1.0, 0.28 + 0.08 * stats["countries"] + 0.01 * stats["documents"] + 0.1 * (1 if stats["patents"] == 0 else 0)), 6),
+                risk_factors=_risk_factors_for(
+                    documents=stats["documents"],
+                    papers=0,
+                    patents=stats["patents"],
+                    grants=0,
+                    organizations=stats["organizations"],
+                ),
+            )
+            for sector, stats in industry_totals.items()
+        ],
+        key=lambda x: x.risk_score,
+        reverse=True,
+    )[:limit]
+
+    return MarketGeoIndustryOut(
+        country_industry=country_industry,
+        country_risks=country_risks,
+        industry_risks=industry_risks,
     )

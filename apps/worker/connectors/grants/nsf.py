@@ -19,6 +19,12 @@ class NSFConnector(BaseConnector):
     kind = "grant"
 
     def fetch(self, since: str | None, limit: int = 25) -> Iterable[RawRecord]:
+        since_dt = None
+        if since:
+            try:
+                since_dt = date.fromisoformat(since)
+            except ValueError:
+                since_dt = None
         resp = httpx.get(
             NSF_API,
             params={"keyword": KEYWORD, "printFields": FIELDS, "rpp": limit},
@@ -26,6 +32,16 @@ class NSFConnector(BaseConnector):
         )
         resp.raise_for_status()
         for award in resp.json().get("response", {}).get("award", []) or []:
+            published = None
+            if award.get("date"):
+                for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+                    try:
+                        published = datetime.strptime(award["date"], fmt).date()
+                        break
+                    except ValueError:
+                        continue
+            if since_dt and published and published <= since_dt:
+                continue
             yield RawRecord(external_id=str(award.get("id", "")), payload=award)
 
     def parse(self, raw: RawRecord) -> NormalizedDocument:

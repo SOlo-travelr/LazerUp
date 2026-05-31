@@ -162,19 +162,28 @@ def compute_opportunities() -> dict:
                 "ndocs": ndocs,
                 "required_capabilities": _required_capabilities(info["name"], info["category"]),
             }
+            reshuffle_priority = clamp(
+                score
+                + 0.04 * sigmoid(recent_docs / 3.0)
+                + 0.03 * sigmoid(float(ev["paper_recent"]) + float(ev["patent_recent"]))
+                + 0.02 * sigmoid(math.log1p(float(ev["funding_recent"])) / 8.0)
+                + 0.01 * confidence
+            )
+            ev["reshuffle_score"] = round(reshuffle_priority, 4)
             candidates.append(
                 {
                     "technology_id": t,
                     "evidence": ev,
                     "score": score,
                     "confidence": confidence,
+                    "reshuffle_score": reshuffle_priority,
                     "buildability": B,
                     "name": info["name"],
                     "category": info["category"],
                 }
             )
 
-        candidates.sort(key=lambda x: x["score"], reverse=True)
+        candidates.sort(key=lambda x: (x["reshuffle_score"], x["score"], x["confidence"]), reverse=True)
         candidates = candidates[:TOP_N]
 
         conn.execute(text("DELETE FROM opportunity WHERE status = 'active'"))

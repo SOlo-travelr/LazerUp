@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AskHero } from "@/components/AskHero";
 import {
   BottlenecksPanel,
+  GeoIndustryPanel,
   HealthPanel,
   InvestorPanel,
   OpportunitiesPanel,
@@ -15,6 +16,7 @@ import {
 const TABS = [
   { id: "health", label: "Health", hint: "Live activity and status" },
   { id: "investors", label: "Investor map", hint: "Capital and wealth" },
+  { id: "geo", label: "Countries + industries", hint: "Risk and opportunity links" },
   { id: "trends", label: "Trends", hint: "What's heating up" },
   { id: "opportunities", label: "Opportunities", hint: "Startup angles" },
   { id: "whitespace", label: "White space", hint: "Underserved areas" },
@@ -59,6 +61,7 @@ export default function HomePage() {
         <div>
           {tab === "health" && <HealthPanel />}
           {tab === "investors" && <InvestorPanel />}
+          {tab === "geo" && <GeoIndustryPanel />}
           {tab === "trends" && <TrendsPanel />}
           {tab === "opportunities" && <OpportunitiesPanel />}
           {tab === "whitespace" && <WhiteSpacePanel />}

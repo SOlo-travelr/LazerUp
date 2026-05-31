@@ -27,6 +27,12 @@ class ArxivConnector(BaseConnector):
     kind = "paper"
 
     def fetch(self, since: str | None, max_results: int = 50) -> Iterable[RawRecord]:
+        since_dt = None
+        if since:
+            try:
+                since_dt = date.fromisoformat(since)
+            except ValueError:
+                since_dt = None
         params = {
             "search_query": QUERY,
             "start": 0,
@@ -41,6 +47,15 @@ class ArxivConnector(BaseConnector):
         ns = {"a": "http://www.w3.org/2005/Atom"}
         root = ET.fromstring(resp.text)
         for entry in root.findall("a:entry", ns):
+            published = None
+            published_text = entry.findtext("a:published", "", ns)
+            if published_text:
+                try:
+                    published = datetime.fromisoformat(published_text.replace("Z", "+00:00")).date()
+                except ValueError:
+                    published = None
+            if since_dt and published and published <= since_dt:
+                break
             ext_id = (entry.findtext("a:id", default="", namespaces=ns) or "").strip()
             authors = [
                 (author.findtext("a:name", default="", namespaces=ns) or "").strip()

@@ -61,6 +61,7 @@ export function OpportunitiesPanel() {
   const q = useQuery({
     queryKey: ["opportunities"],
     queryFn: () => api.opportunities(),
+    refetchInterval: 60000,
   });
   return (
     <PanelState
@@ -82,6 +83,9 @@ export function OpportunitiesPanel() {
               <div className="flex flex-wrap gap-2 text-xs text-neutral-500">
                 {o.market && <span>Market: {o.market}</span>}
                 {o.technical_risk && <span>· Risk: {o.technical_risk}</span>}
+                {o.priority_score != null && (
+                  <span>· Reshuffle rank: {Math.round(o.priority_score * 100)}</span>
+                )}
               </div>
             </div>
           </article>
@@ -329,6 +333,99 @@ export function InvestorPanel() {
                 <p className="mt-2 text-sm text-neutral-400">{h.wealth_thesis}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function GeoIndustryPanel() {
+  const q = useQuery({ queryKey: ["geo-industry-map"], queryFn: () => api.geoIndustryMap() });
+
+  if (q.isLoading) return <Spinner />;
+  if (q.isError) return <ErrorState message="Couldn't load country and industry analysis." />;
+  if (!q.data) return <EmptyState message="No country and industry analysis yet." />;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="card p-4">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Country and industry signals</h3>
+          <div className="space-y-2">
+            {q.data.country_industry.slice(0, 8).map((row) => (
+              <div key={`${row.country}-${row.sector}`} className="rounded-xl bg-white/5 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-neutral-100">{row.country}</div>
+                    <div className="text-xs uppercase tracking-wide text-neutral-500">{row.sector}</div>
+                  </div>
+                  <Badge>{Math.round(row.risk_score * 100)}</Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-2 text-xs text-neutral-500">
+                  <span>Docs {row.documents}</span>
+                  <span>Papers {row.papers}</span>
+                  <span>Patents {row.patents}</span>
+                  <span>Orgs {row.organizations}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  {row.risk_factors.map((risk) => (
+                    <Badge key={risk}>{risk}</Badge>
+                  ))}
+                </div>
+                {row.top_opportunities.length > 0 && (
+                  <p className="mt-2 text-sm text-neutral-400">
+                    Opportunities: {row.top_opportunities.slice(0, 3).join(" · ")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="card p-4">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Country risk</h3>
+            <div className="space-y-2">
+              {q.data.country_risks.slice(0, 6).map((row) => (
+                <div key={`${row.country}-${row.sector}`} className="rounded-xl bg-white/5 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-neutral-100">{row.country}</span>
+                    <Badge>{row.sector}</Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    {row.risk_factors.map((risk) => (
+                      <Badge key={risk}>{risk}</Badge>
+                    ))}
+                  </div>
+                  <div className="mt-2 text-sm text-neutral-400">Risk score {Math.round(row.risk_score * 100)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Industry risk</h3>
+            <div className="space-y-2">
+              {q.data.industry_risks.slice(0, 6).map((row) => (
+                <div key={row.sector} className="rounded-xl bg-white/5 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-neutral-100">{row.sector}</span>
+                    <Badge>{Math.round(row.risk_score * 100)}</Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-neutral-500">
+                    <span>Countries {row.countries}</span>
+                    <span>Docs {row.documents}</span>
+                    <span>Opps {row.opportunities}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    {row.risk_factors.map((risk) => (
+                      <Badge key={risk}>{risk}</Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

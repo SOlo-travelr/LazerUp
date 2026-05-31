@@ -18,11 +18,14 @@ def list_opportunities(db: Session, limit: int = 20) -> list[OpportunityItem]:
             """
             SELECT o.id, o.title, o.thesis, o.market, o.technical_risk,
                    o.commercial_potential, o.score, o.confidence, o.evidence,
+                   COALESCE((o.evidence->>'reshuffle_score')::float, o.score) AS priority_score,
                    t.name AS technology
             FROM opportunity o
             LEFT JOIN technology t ON t.id = o.technology_id
             WHERE o.status = 'active'
-            ORDER BY o.score DESC
+            ORDER BY COALESCE((o.evidence->>'reshuffle_score')::float, o.score) DESC,
+                     o.score DESC,
+                     o.generated_at DESC
             LIMIT :limit
             """
         ),
@@ -38,6 +41,7 @@ def list_opportunities(db: Session, limit: int = 20) -> list[OpportunityItem]:
             technical_risk=r["technical_risk"],
             commercial_potential=r["commercial_potential"],
             score=round(r["score"] or 0, 6),
+            priority_score=round(r["priority_score"] or 0, 6),
             confidence=round(r["confidence"] or 0, 6),
             evidence=r["evidence"] or {},
         )

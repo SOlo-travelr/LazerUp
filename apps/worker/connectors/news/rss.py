@@ -19,6 +19,8 @@ DEFAULT_FEEDS = [
     "https://www.mining.com/feed/",
     "https://thedriven.io/feed/",
     "https://www.pv-magazine.com/feed/",
+    "https://www.greencarcongress.com/feed/",
+    "https://www.power-technology.com/feed/",
 ]
 
 
@@ -30,6 +32,12 @@ class RSSConnector(BaseConnector):
         self.feeds = feeds or DEFAULT_FEEDS
 
     def fetch(self, since: str | None) -> Iterable[RawRecord]:
+        since_dt = None
+        if since:
+            try:
+                since_dt = datetime.fromisoformat(since).date()
+            except ValueError:
+                since_dt = None
         for feed_url in self.feeds:
             try:
                 resp = httpx.get(feed_url, timeout=30, follow_redirects=True)
@@ -39,6 +47,14 @@ class RSSConnector(BaseConnector):
             root = ET.fromstring(resp.text)
             for item in root.iter("item"):
                 link = (item.findtext("link") or "").strip()
+                published = None
+                if item.findtext("pubDate"):
+                    try:
+                        published = parsedate_to_datetime(item.findtext("pubDate") or "").date()
+                    except (TypeError, ValueError):
+                        published = None
+                if since_dt and published and published <= since_dt:
+                    continue
                 yield RawRecord(
                     external_id=link,
                     payload={

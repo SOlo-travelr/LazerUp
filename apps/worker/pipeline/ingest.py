@@ -20,6 +20,7 @@ from connectors.patents.patentsview import PatentsViewConnector
 from db import engine
 from repository import get_source_id, upsert_document
 from telemetry import log_event, storage_snapshot
+from sqlalchemy import text
 
 # Connector registry. Each `name` must match a row in the `source` table (seed).
 CONNECTORS: list[Connector] = [
@@ -31,6 +32,11 @@ CONNECTORS: list[Connector] = [
     CompanyRSSConnector(),
     RSSConnector(),
 ]
+
+_GET_SOURCE_STATE = text("SELECT watermark FROM source WHERE id = :id")
+_UPDATE_SOURCE_STATE = text(
+    "UPDATE source SET last_run_at = now(), watermark = :watermark WHERE id = :id"
+)
 
 
 def collect(connector: Connector, since: str | None = None) -> list[NormalizedDocument]:
@@ -44,6 +50,15 @@ def collect(connector: Connector, since: str | None = None) -> list[NormalizedDo
         seen_hashes.add(doc.content_hash)
         docs.append(doc)
     return docs
+
+
+def _source_watermark(conn, source_id: str) -> str | None:
+    row = conn.execute(_GET_SOURCE_STATE, {"id": source_id}).first()
+    return str(row[0]) if row and row[0] else None
+
+
+def _update_source_state(conn, source_id: str, watermark: str | None) -> None:
+    conn.execute(_UPDATE_SOURCE_STATE, {"id": source_id, "watermark": watermark})
 
 
 def run_all_connectors() -> dict:
@@ -63,13 +78,20 @@ def run_all_connectors() -> dict:
                     summary[connector.name] = {"error": "source_not_registered"}
                     continue
 
+                since = _source_watermark(conn, source_id)
                 inserted = duplicates = 0
-                for doc in collect(connector):
+                latest_watermark: str | None = since
+                for doc in collect(connector, since=since):
                     _id, was_new = upsert_document(conn, source_id, doc)
+                    if doc.published_at:
+                        published = doc.published_at.isoformat()
+                        if latest_watermark is None or published > latest_watermark:
+                            latest_watermark = published
                     if was_new:
                         inserted += 1
                     else:
                         duplicates += 1
+                _update_source_state(conn, source_id, latest_watermark)
                 summary[connector.name] = {"inserted": inserted, "duplicates": duplicates}
         except Exception as exc:  # keep one bad source from blocking others
             summary[connector.name] = {"error": str(exc)}

@@ -31,6 +31,7 @@ export interface Opportunity {
   technical_risk: string | null;
   commercial_potential: string | null;
   score: number;
+  priority_score?: number | null;
   confidence: number;
   evidence: Record<string, unknown>;
 }
@@ -146,6 +147,43 @@ export interface CapitalMap {
   minor_market_hotspots: CapitalHotspot[];
 }
 
+export interface GeoCountryIndustry {
+  country: string;
+  sector: string;
+  documents: number;
+  papers: number;
+  patents: number;
+  grants: number;
+  organizations: number;
+  opportunities: number;
+  risk_score: number;
+  risk_factors: string[];
+  top_opportunities: string[];
+}
+
+export interface GeoCountryRisk {
+  country: string;
+  sector: string;
+  risk_score: number;
+  risk_factors: string[];
+  top_opportunities: string[];
+}
+
+export interface GeoIndustryRisk {
+  sector: string;
+  countries: number;
+  documents: number;
+  opportunities: number;
+  risk_score: number;
+  risk_factors: string[];
+}
+
+export interface GeoIndustryMap {
+  country_industry: GeoCountryIndustry[];
+  country_risks: GeoCountryRisk[];
+  industry_risks: GeoIndustryRisk[];
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -183,6 +221,10 @@ export const api = {
   marketCapitalMap: (days = 180, sectors = 10, hotspots = 12) =>
     getJson<CapitalMap>(
       `/api/v1/markets/capital-map?days=${days}&sectors=${sectors}&hotspots=${hotspots}`,
+    ),
+  geoIndustryMap: (days = 180, limit = 12) =>
+    getJson<GeoIndustryMap>(
+      `/api/v1/markets/geo-industry-map?days=${days}&limit=${limit}`,
     ),
   search: (query: string, limit = 10) =>
     postJson<{ items: SearchItem[] }>(`/api/v1/search`, {

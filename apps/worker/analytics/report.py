@@ -160,16 +160,3 @@ def build_weekly_report() -> dict:
     result = {"status": "ok", "week_start": week_start.isoformat()}
     log_event("processing", "report", "ok", "weekly report refreshed", result)
     return result
-            text(
-                """
-                INSERT INTO weekly_report (week_start, payload)
-                VALUES (:week_start, CAST(:payload AS jsonb))
-                ON CONFLICT (week_start) DO UPDATE SET
-                    payload = EXCLUDED.payload,
-                    generated_at = now()
-                """
-            ),
-            {"week_start": week_start, "payload": json.dumps(payload)},
-        )
-
-    return {"status": "ok", "week_start": week_start.isoformat()}

@@ -72,6 +72,7 @@ class OpportunityItem(BaseModel):
     technical_risk: str | None = None
     commercial_potential: str | None = None
     score: float
+    priority_score: float | None = None
     confidence: float
     evidence: dict
 
@@ -279,6 +280,43 @@ class MarketCapitalMapOut(BaseModel):
     majority_sectors: list[SectorCapitalItem]
     major_market_hotspots: list[RegionalCapitalItem]
     minor_market_hotspots: list[RegionalCapitalItem]
+
+
+class CountryIndustryItem(BaseModel):
+    country: str
+    sector: str
+    documents: int
+    papers: int
+    patents: int
+    grants: int
+    organizations: int
+    opportunities: int
+    risk_score: float
+    risk_factors: list[str] = Field(default_factory=list)
+    top_opportunities: list[str] = Field(default_factory=list)
+
+
+class CountryRiskItem(BaseModel):
+    country: str
+    sector: str
+    risk_score: float
+    risk_factors: list[str] = Field(default_factory=list)
+    top_opportunities: list[str] = Field(default_factory=list)
+
+
+class IndustryRiskItem(BaseModel):
+    sector: str
+    countries: int
+    documents: int
+    opportunities: int
+    risk_score: float
+    risk_factors: list[str] = Field(default_factory=list)
+
+
+class MarketGeoIndustryOut(BaseModel):
+    country_industry: list[CountryIndustryItem]
+    country_risks: list[CountryRiskItem]
+    industry_risks: list[IndustryRiskItem]
 
 
 # ----- System health -----
