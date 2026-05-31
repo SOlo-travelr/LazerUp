@@ -25,3 +25,13 @@ def market_capital_map(
     db: Session = Depends(get_db),
 ) -> MarketCapitalMapOut:
     return get_market_capital_map(db, days=days, sectors=sectors, hotspots=hotspots)
+
+
+@router.get("/markets/investor-map", response_model=MarketCapitalMapOut)
+def market_investor_map(
+    days: int = 180,
+    sectors: int = 10,
+    hotspots: int = 12,
+    db: Session = Depends(get_db),
+) -> MarketCapitalMapOut:
+    return get_market_capital_map(db, days=days, sectors=sectors, hotspots=hotspots)

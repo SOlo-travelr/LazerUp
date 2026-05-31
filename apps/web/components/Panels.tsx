@@ -216,6 +216,143 @@ export function ReportPanel() {
   );
 }
 
+export function HealthPanel() {
+  const q = useQuery({ queryKey: ["health-status"], queryFn: () => api.healthStatus() });
+
+  if (q.isLoading) return <Spinner />;
+  if (q.isError) return <ErrorState message="Couldn't load system health." />;
+  if (!q.data) return <EmptyState message="No health status available." />;
+
+  const { overall_status, storage, components, recent_activity, source_recommendations } = q.data;
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        <StatCard label="Overall" value={overall_status} tone={overall_status === "ok" ? "emerald" : "amber"} />
+        <StatCard label="DB size" value={`${storage.db_size_gb.toFixed(2)} GB`} />
+        <StatCard label="Budget" value={storage.within_budget ? "within" : "exceeded"} tone={storage.within_budget ? "emerald" : "red"} />
+        <StatCard label="Sources" value={`${source_recommendations.length} recs`} />
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="card p-4">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Pipeline status</h3>
+          <div className="space-y-2">
+            {components.map((c) => (
+              <div key={c.component} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                <div>
+                  <div className="font-medium capitalize text-neutral-100">{c.component.replace(/_/g, " ")}</div>
+                  <div className="text-xs text-neutral-500">ok {c.ok_count} · errors {c.error_count}</div>
+                </div>
+                <Badge>{c.status}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card p-4">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Source discovery</h3>
+          {source_recommendations.length === 0 ? (
+            <EmptyState message="No new source recommendations right now." />
+          ) : (
+            <ul className="space-y-2">
+              {source_recommendations.map((s) => (
+                <li key={s.name} className="rounded-xl bg-white/5 px-3 py-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-neutral-100">{s.name}</span>
+                    <Badge>{Math.round(s.score * 100)}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-neutral-400">{s.reason}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="card p-4">
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Recent activity</h3>
+        <div className="space-y-2">
+          {recent_activity.events.slice(0, 10).map((e) => (
+            <div key={`${e.component}-${e.created_at}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <span className="font-medium text-neutral-100">{e.component}</span>
+                <span className="text-neutral-500"> · {e.phase}</span>
+                {e.message && <span className="text-neutral-500"> · {e.message}</span>}
+              </div>
+              <Badge>{e.status}</Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function InvestorPanel() {
+  const q = useQuery({ queryKey: ["investor-map"], queryFn: () => api.investorMap() });
+  if (q.isLoading) return <Spinner />;
+  if (q.isError) return <ErrorState message="Couldn't load investor map." />;
+  if (!q.data) return <EmptyState message="No investor map yet." />;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="card p-4">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Majority sectors</h3>
+          <div className="space-y-2">
+            {q.data.majority_sectors.map((s) => (
+              <div key={s.sector} className="rounded-xl bg-white/5 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-neutral-100">{s.sector}</span>
+                  <Badge>{Math.round(s.capital_attractiveness * 100)}</Badge>
+                </div>
+                <p className="mt-2 text-sm text-neutral-400">{s.wealth_thesis}</p>
+                <div className="mt-3 grid grid-cols-4 gap-2 text-xs text-neutral-500">
+                  <span>Papers {s.papers}</span>
+                  <span>Patents {s.patents}</span>
+                  <span>Grants {s.grants}</span>
+                  <span>Orgs {s.company_presence}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card p-4">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Hotspots</h3>
+          <div className="space-y-2">
+            {q.data.major_market_hotspots.slice(0, 6).map((h) => (
+              <div key={`${h.region}-${h.sector}`} className="rounded-xl bg-white/5 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-neutral-100">{h.region}</span>
+                  <Badge>{h.sector}</Badge>
+                </div>
+                <p className="mt-2 text-sm text-neutral-400">{h.wealth_thesis}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, tone }: { label: string; value: string; tone?: "emerald" | "amber" | "red" }) {
+  const toneClass =
+    tone === "emerald"
+      ? "text-emerald-300"
+      : tone === "amber"
+        ? "text-amber-300"
+        : tone === "red"
+          ? "text-red-300"
+          : "text-neutral-100";
+  return (
+    <div className="card p-4">
+      <div className="text-xs uppercase tracking-wide text-neutral-500">{label}</div>
+      <div className={`mt-2 text-xl font-semibold ${toneClass}`}>{value}</div>
+    </div>
+  );
+}
+
 function ReportList({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="card p-4">

@@ -279,3 +279,50 @@ class MarketCapitalMapOut(BaseModel):
     majority_sectors: list[SectorCapitalItem]
     major_market_hotspots: list[RegionalCapitalItem]
     minor_market_hotspots: list[RegionalCapitalItem]
+
+
+# ----- System health -----
+
+
+class HealthStorageOut(BaseModel):
+    db_size_gb: float
+    storage_limit_gb: float
+    within_budget: bool
+
+
+class HealthComponentOut(BaseModel):
+    component: str
+    status: str
+    ok_count: int
+    error_count: int
+    last_event_at: datetime | None = None
+
+
+class SystemEventOut(BaseModel):
+    component: str
+    phase: str
+    status: str
+    message: str | None = None
+    payload: dict = Field(default_factory=dict)
+    created_at: datetime
+
+
+class HealthActivityOut(BaseModel):
+    events: list[SystemEventOut]
+
+
+class SourceRecommendationOut(BaseModel):
+    name: str
+    kind: str
+    url: str
+    score: float
+    reason: str
+    matched_sectors: list[str] = Field(default_factory=list)
+
+
+class HealthStatusOut(BaseModel):
+    overall_status: str
+    storage: HealthStorageOut
+    components: list[HealthComponentOut]
+    recent_activity: HealthActivityOut
+    source_recommendations: list[SourceRecommendationOut]

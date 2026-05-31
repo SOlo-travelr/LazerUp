@@ -12,6 +12,7 @@ from analytics.bottlenecks import compute_bottlenecks
 from analytics.opportunities import compute_opportunities
 from analytics.trends import compute_trends
 from analytics.whitespace import compute_white_spaces
+from telemetry import log_event
 
 _STAGES = (
     ("bottlenecks", compute_bottlenecks),
@@ -22,12 +23,14 @@ _STAGES = (
 
 
 def run_analytics() -> dict:
+    log_event("processing", "analytics", "start", "analytics cycle starting")
     results: dict[str, dict] = {}
     for name, fn in _STAGES:
         try:
             results[name] = fn()
         except Exception as exc:  # noqa: BLE001 - report per-stage, keep going
             results[name] = {"status": "error", "error": str(exc)}
+    log_event("processing", "analytics", "ok", "analytics cycle complete", results)
     return results
 
 

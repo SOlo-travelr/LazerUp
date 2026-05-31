@@ -18,6 +18,7 @@ SOURCES = [
     ("crunchbase", "funding", "https://www.crunchbase.com"),
     ("techcrunch", "funding", "https://techcrunch.com"),
     ("industry_rss", "news", ""),
+    ("company_rss", "news", ""),
 ]
 
 # Full battery value-chain taxonomy: raw-material mining -> refining ->

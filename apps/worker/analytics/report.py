@@ -15,6 +15,7 @@ from sqlalchemy.engine import Connection
 
 from db import engine
 from llm import get_llm_provider
+from telemetry import log_event
 
 TOP_N = 5
 
@@ -156,7 +157,9 @@ def build_weekly_report() -> dict:
         }
         payload["summary"] = _narrative(payload)
 
-        conn.execute(
+    result = {"status": "ok", "week_start": week_start.isoformat()}
+    log_event("processing", "report", "ok", "weekly report refreshed", result)
+    return result
             text(
                 """
                 INSERT INTO weekly_report (week_start, payload)

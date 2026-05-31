@@ -7,15 +7,19 @@ Embedding generation runs as a separate stage (`pipeline.embed`).
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from connectors.base import Connector, NormalizedDocument
 from connectors.grants.nsf import NSFConnector
 from connectors.grants.sbir import SBIRConnector
+from connectors.news.company_rss import CompanyRSSConnector
 from connectors.news.rss import RSSConnector
 from connectors.papers.arxiv import ArxivConnector
 from connectors.papers.semantic_scholar import SemanticScholarConnector
 from connectors.patents.patentsview import PatentsViewConnector
 from db import engine
 from repository import get_source_id, upsert_document
+from telemetry import log_event, storage_snapshot
 
 # Connector registry. Each `name` must match a row in the `source` table (seed).
 CONNECTORS: list[Connector] = [
@@ -24,6 +28,7 @@ CONNECTORS: list[Connector] = [
     PatentsViewConnector(),
     NSFConnector(),
     SBIRConnector(),
+    CompanyRSSConnector(),
     RSSConnector(),
 ]
 
@@ -42,6 +47,13 @@ def collect(connector: Connector, since: str | None = None) -> list[NormalizedDo
 
 
 def run_all_connectors() -> dict:
+    snapshot = storage_snapshot()
+    if not snapshot.within_budget:
+        payload = asdict(snapshot)
+        log_event("retrieval", "budget", "blocked", "storage budget exceeded", payload)
+        return {"status": "blocked", "reason": "storage_budget_exceeded", "storage": payload}
+
+    log_event("retrieval", "start", "ok", "starting retrieval cycle", asdict(snapshot))
     summary: dict[str, dict] = {}
     for connector in CONNECTORS:
         try:
@@ -63,4 +75,6 @@ def run_all_connectors() -> dict:
             summary[connector.name] = {"error": str(exc)}
             print(f'{{"level":"ERROR","connector":"{connector.name}","error":"{exc}"}}')
 
-    return {"status": "ok", "ingested": summary}
+    result = {"status": "ok", "ingested": summary}
+    log_event("retrieval", "finish", "ok", "retrieval cycle complete", result)
+    return result

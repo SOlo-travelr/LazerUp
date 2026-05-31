@@ -82,6 +82,70 @@ export interface WeeklyReport {
   };
 }
 
+export interface HealthStatus {
+  overall_status: string;
+  storage: {
+    db_size_gb: number;
+    storage_limit_gb: number;
+    within_budget: boolean;
+  };
+  components: {
+    component: string;
+    status: string;
+    ok_count: number;
+    error_count: number;
+    last_event_at: string | null;
+  }[];
+  recent_activity: {
+    events: {
+      component: string;
+      phase: string;
+      status: string;
+      message: string | null;
+      payload: Record<string, unknown>;
+      created_at: string;
+    }[];
+  };
+  source_recommendations: {
+    name: string;
+    kind: string;
+    url: string;
+    score: number;
+    reason: string;
+    matched_sectors: string[];
+  }[];
+}
+
+export interface CapitalSector {
+  sector: string;
+  documents: number;
+  papers: number;
+  patents: number;
+  grants: number;
+  company_presence: number;
+  funding_usd: number;
+  avg_trend_score: number;
+  capital_attractiveness: number;
+  wealth_thesis: string;
+}
+
+export interface CapitalHotspot {
+  region: string;
+  market_tier: string;
+  sector: string;
+  document_signals: number;
+  company_presence: number;
+  funding_usd: number;
+  capital_attractiveness: number;
+  wealth_thesis: string;
+}
+
+export interface CapitalMap {
+  majority_sectors: CapitalSector[];
+  major_market_hotspots: CapitalHotspot[];
+  minor_market_hotspots: CapitalHotspot[];
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -111,6 +175,15 @@ export const api = {
   bottlenecks: (limit = 20) =>
     getJson<Bottleneck[]>(`/api/v1/bottlenecks?limit=${limit}`),
   latestReport: () => getJson<WeeklyReport>(`/api/v1/reports/latest`),
+  healthStatus: () => getJson<HealthStatus>(`/api/v1/health/status`),
+  investorMap: (days = 180, sectors = 10, hotspots = 12) =>
+    getJson<CapitalMap>(
+      `/api/v1/investor/map?days=${days}&sectors=${sectors}&hotspots=${hotspots}`,
+    ),
+  marketCapitalMap: (days = 180, sectors = 10, hotspots = 12) =>
+    getJson<CapitalMap>(
+      `/api/v1/markets/capital-map?days=${days}&sectors=${sectors}&hotspots=${hotspots}`,
+    ),
   search: (query: string, limit = 10) =>
     postJson<{ items: SearchItem[] }>(`/api/v1/search`, {
       query,

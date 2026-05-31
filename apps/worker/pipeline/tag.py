@@ -18,6 +18,7 @@ import re
 from sqlalchemy import text
 
 from db import engine
+from telemetry import log_event
 
 _SELECT_TECHS = text("SELECT id, slug, aliases FROM technology")
 
@@ -57,7 +58,9 @@ def tag_documents() -> dict:
                 patterns.append((str(t["id"]), pat))
 
         if not patterns:
-            return {"status": "empty", "reason": "no_technology_aliases"}
+            result = {"status": "empty", "reason": "no_technology_aliases"}
+            log_event("processing", "tag", "skipped", "no aliases available", result)
+            return result
 
         docs = conn.execute(_SELECT_DOCS).mappings().all()
         links = 0
@@ -84,13 +87,15 @@ def tag_documents() -> dict:
             if matched:
                 tagged_docs += 1
 
-    return {
+    result = {
         "status": "ok",
         "documents": len(docs),
         "tagged_documents": tagged_docs,
         "technologies": len(patterns),
         "links": links,
     }
+    log_event("processing", "tag", "ok", "tagging cycle complete", result)
+    return result
 
 
 if __name__ == "__main__":

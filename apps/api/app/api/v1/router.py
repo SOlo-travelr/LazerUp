@@ -5,6 +5,7 @@ from app.api.v1 import (
     bottlenecks,
     founder,
     health,
+    investor,
     linkage,
     markets,
     opportunities,
@@ -16,6 +17,7 @@ from app.api.v1 import (
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health.router, tags=["health"])
+api_router.include_router(investor.router, tags=["investor"])
 api_router.include_router(search.router, tags=["search"])
 api_router.include_router(trends.router, tags=["trends"])
 api_router.include_router(opportunities.router, tags=["opportunities"])

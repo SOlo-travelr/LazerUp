@@ -4,6 +4,8 @@ import { useState } from "react";
 import { AskHero } from "@/components/AskHero";
 import {
   BottlenecksPanel,
+  HealthPanel,
+  InvestorPanel,
   OpportunitiesPanel,
   ReportPanel,
   TrendsPanel,
@@ -11,6 +13,8 @@ import {
 } from "@/components/Panels";
 
 const TABS = [
+  { id: "health", label: "Health", hint: "Live activity and status" },
+  { id: "investors", label: "Investor map", hint: "Capital and wealth" },
   { id: "trends", label: "Trends", hint: "What's heating up" },
   { id: "opportunities", label: "Opportunities", hint: "Startup angles" },
   { id: "whitespace", label: "White space", hint: "Underserved areas" },
@@ -21,7 +25,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export default function HomePage() {
-  const [tab, setTab] = useState<TabId>("trends");
+  const [tab, setTab] = useState<TabId>("health");
   const active = TABS.find((t) => t.id === tab)!;
 
   return (
@@ -53,6 +57,8 @@ export default function HomePage() {
         </div>
 
         <div>
+          {tab === "health" && <HealthPanel />}
+          {tab === "investors" && <InvestorPanel />}
           {tab === "trends" && <TrendsPanel />}
           {tab === "opportunities" && <OpportunitiesPanel />}
           {tab === "whitespace" && <WhiteSpacePanel />}

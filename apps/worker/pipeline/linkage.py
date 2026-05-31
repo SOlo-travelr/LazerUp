@@ -12,6 +12,7 @@ from decimal import Decimal
 from sqlalchemy import text
 
 from db import engine
+from telemetry import log_event
 
 _SELECT_DOCS = text(
     """
@@ -180,6 +181,26 @@ def _infer_org_type(name: str, source: str | None = None) -> str:
     return "organization"
 
 
+def _infer_country(name: str) -> str | None:
+    lower = name.lower()
+    country_map = {
+        "China": ("china", "beijing", "shenzhen", "guangzhou", "hong kong"),
+        "South Korea": ("korea", "seoul", "samsung", "lg energy solution", "sk on"),
+        "Japan": ("japan", "tokyo", "kyoto", "osaka", "panasonic", "toyota"),
+        "Germany": ("germany", "berlin", "munich", "fraunhofer", "bosch"),
+        "France": ("france", "paris", "saft"),
+        "United States": ("united states", "u.s.", "usa", "california", "mit", "stanford", "berkeley"),
+        "Canada": ("canada", "toronto", "waterloo", "ontario"),
+        "India": ("india", "iit", "bangalore", "mumbai", "new delhi"),
+        "Australia": ("australia", "melbourne", "sydney", "queensland"),
+        "United Kingdom": ("uk", "united kingdom", "oxford", "cambridge", "london"),
+    }
+    for country, keys in country_map.items():
+        if any(k in lower for k in keys):
+            return country
+    return None
+
+
 def _get_or_create_org(conn, name: str, *, source: str | None = None) -> str:
     row = conn.execute(_SELECT_ORG, {"name": name}).first()
     if row:
@@ -189,7 +210,7 @@ def _get_or_create_org(conn, name: str, *, source: str | None = None) -> str:
         {
             "name": name,
             "org_type": _infer_org_type(name, source=source),
-            "country": None,
+            "country": _infer_country(name),
             "metadata": "{}",
         },
     ).first()
@@ -352,7 +373,7 @@ def build_linkage_graph() -> dict:
         conn.execute(_INFER_TECH_TO_COMPANY)
         conn.execute(_INFER_TECH_TO_RESEARCHER)
 
-    return {
+    result = {
         "status": "ok",
         "documents": len(docs),
         "people_processed": people,
@@ -362,6 +383,8 @@ def build_linkage_graph() -> dict:
         "patent_rows": patents,
         "grant_rows": grants,
     }
+    log_event("processing", "linkage", "ok", "linkage graph refreshed", result)
+    return result
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from celery_app import celery
 from pipeline.embed import embed_new_documents as _embed
 from pipeline.ingest import run_all_connectors as _run_all
 from pipeline.linkage import build_linkage_graph as _linkage
+from pipeline.source_discovery import discover_sources as _discover_sources
 from pipeline.run_analytics import run_analytics as _analytics
 from pipeline.tag import tag_documents as _tag
 
@@ -12,6 +13,11 @@ from pipeline.tag import tag_documents as _tag
 @celery.task(name="tasks.run_all_connectors")
 def run_all_connectors() -> dict:
     return _run_all()
+
+
+@celery.task(name="tasks.discover_sources")
+def discover_sources() -> dict:
+    return _discover_sources()
 
 
 @celery.task(name="tasks.tag_documents")
