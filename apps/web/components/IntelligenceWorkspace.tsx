@@ -178,6 +178,10 @@ export function IntelligenceWorkspace() {
   const error = qTrends.isError || qOpportunities.isError || qGeo.isError || qHeadlines.isError || qHealth.isError;
 
   const normalized = useMemo(() => normalizeWeights(weights), [weights]);
+  const hasCustomWeights = useMemo(() => {
+    const keys: (keyof ScoreWeights)[] = ["research", "commercial", "policy", "ip", "supply", "execution"];
+    return keys.some((key) => Math.abs(weights[key] - DEFAULT_WEIGHTS[key]) > 0.0001);
+  }, [weights]);
 
   useEffect(() => {
     try {
@@ -378,6 +382,14 @@ export function IntelligenceWorkspace() {
       .sort((a, b) => b.score - a.score);
   }, [rawSignals, minConfidence, selectedCountries, selectedSectors]);
 
+  const filteredOutCount = Math.max(0, rawSignals.length - signals.length);
+  const hasActiveFilters =
+    minConfidence > 0.45 ||
+    selectedCountries.length > 0 ||
+    selectedSectors.length > 0 ||
+    watchlist.length > 0 ||
+    hasCustomWeights;
+
   const selectedSignal = useMemo(() => {
     if (signals.length === 0) return null;
     if (!selectedSignalId) return signals[0];
@@ -464,6 +476,23 @@ export function IntelligenceWorkspace() {
             </button>
           </div>
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-200">
+            {mode === "feed" ? "Live analyst feed" : "Briefing narrative mode"}
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-neutral-300">
+            Showing {signals.length} of {rawSignals.length} signals
+          </span>
+          {hasActiveFilters ? (
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-200">
+              Filters active
+            </span>
+          ) : (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-neutral-400">
+              No filters applied
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_360px]">
@@ -492,6 +521,14 @@ export function IntelligenceWorkspace() {
             <WeightSlider label="Supply" value={weights.supply} onChange={(v) => setWeights((w) => ({ ...w, supply: v }))} />
             <WeightSlider label="Execution" value={weights.execution} onChange={(v) => setWeights((w) => ({ ...w, execution: v }))} />
             <div className="text-xs text-neutral-500">Normalized automatically to keep scoring stable.</div>
+            {hasCustomWeights && (
+              <button
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-neutral-200 hover:border-white/20"
+                onClick={() => setWeights(DEFAULT_WEIGHTS)}
+              >
+                Reset weights to default mix
+              </button>
+            )}
           </div>
 
           <div className="card p-4 space-y-3">
@@ -528,6 +565,16 @@ export function IntelligenceWorkspace() {
                 )
               }
             />
+            <button
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-neutral-200 hover:border-white/20"
+              onClick={() => {
+                setMinConfidence(0.45);
+                setSelectedCountries([]);
+                setSelectedSectors([]);
+              }}
+            >
+              Reset filters
+            </button>
           </div>
 
           <div className="card p-4 space-y-3">
@@ -661,7 +708,14 @@ export function IntelligenceWorkspace() {
           ) : (
             <div className="space-y-3">
               <div className="card p-4">
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Prioritized signal feed</h3>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Prioritized signal feed</h3>
+                  <div className="text-xs text-neutral-400">
+                    {filteredOutCount > 0
+                      ? `${filteredOutCount} filtered out`
+                      : "No signals filtered out"}
+                  </div>
+                </div>
                 {signals.length === 0 ? (
                   <EmptyState message="No signals match the current filters." />
                 ) : (

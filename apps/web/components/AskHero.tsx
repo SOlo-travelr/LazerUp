@@ -43,6 +43,7 @@ export function AskHero() {
           className="mt-4 flex gap-2"
         >
           <input
+            data-command-target="ask-input"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="e.g. Which technologies have research but little startup activity?"

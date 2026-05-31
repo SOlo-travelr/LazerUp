@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   BottlenecksPanel,
   GeoIndustryPanel,
@@ -12,7 +11,7 @@ import {
   WhiteSpacePanel,
 } from "@/components/Panels";
 
-const TABS = [
+export const CLASSIC_TABS = [
   { id: "health", label: "Health", hint: "Live activity and status" },
   { id: "investors", label: "Investor map", hint: "Capital and wealth" },
   { id: "geo", label: "Countries + industries", hint: "Risk and opportunity links" },
@@ -23,19 +22,24 @@ const TABS = [
   { id: "report", label: "Weekly report", hint: "The briefing" },
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+export type ClassicTabId = (typeof CLASSIC_TABS)[number]["id"];
 
-export function ClassicDashboard() {
-  const [tab, setTab] = useState<TabId>("health");
-  const active = TABS.find((t) => t.id === tab)!;
+export function ClassicDashboard({
+  tab,
+  onTabChange,
+}: {
+  tab: ClassicTabId;
+  onTabChange: (next: ClassicTabId) => void;
+}) {
+  const active = CLASSIC_TABS.find((t) => t.id === tab)!;
 
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {TABS.map((t) => (
+        {CLASSIC_TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => onTabChange(t.id)}
             className={`rounded-xl px-3.5 py-2 text-sm font-medium transition ${
               tab === t.id
                 ? "bg-white/10 text-white"
