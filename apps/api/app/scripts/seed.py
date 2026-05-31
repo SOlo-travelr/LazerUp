@@ -7,6 +7,7 @@ from app.db.session import SessionLocal
 
 SOURCES = [
     ("arxiv", "paper", "https://arxiv.org"),
+    ("google_scholar", "paper", "https://scholar.google.com"),
     ("semantic_scholar", "paper", "https://www.semanticscholar.org"),
     ("chemrxiv", "paper", "https://chemrxiv.org"),
     ("uspto_patentsview", "patent", "https://patentsview.org"),

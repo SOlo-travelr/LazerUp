@@ -15,6 +15,12 @@ def run_all_connectors() -> dict:
     return _run_all()
 
 
+@celery.task(name="tasks.run_aggressive_backfill")
+def run_aggressive_backfill(backfill_days: int = 3650) -> dict:
+    # Pull aggressively from the last N days to bootstrap a large corpus quickly.
+    return _run_all(aggressive=True, backfill_days=backfill_days)
+
+
 @celery.task(name="tasks.discover_sources")
 def discover_sources() -> dict:
     return _discover_sources()

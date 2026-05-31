@@ -21,6 +21,21 @@ DEFAULT_FEEDS = [
     "https://www.pv-magazine.com/feed/",
     "https://www.greencarcongress.com/feed/",
     "https://www.power-technology.com/feed/",
+    "https://insideevs.com/feed/",
+    "https://www.electrive.com/feed/",
+    "https://www.batterytechonline.com/feed/",
+    "https://www.batterycompanies.com/feed/",
+    "https://www.ess-news.com/feed/",
+    "https://www.canarymedia.com/rss",
+    "https://www.utilitydive.com/feeds/news/",
+    "https://www.spglobal.com/marketintelligence/en/news-insights/latest-news-headlines/rss",
+    "https://www.iea.org/news/rss",
+    "https://www.energy.gov/rss.xml",
+    "https://www.cleanenergywire.org/rss.xml",
+    "https://www.rechargenews.com/rss",
+    "https://www.renewableenergymagazine.com/rss",
+    "https://www.renewableenergyworld.com/feed/",
+    "https://www.sciencedaily.com/rss/matter_energy.xml",
 ]
 
 

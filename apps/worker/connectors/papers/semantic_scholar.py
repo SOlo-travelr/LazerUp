@@ -14,7 +14,8 @@ FIELDS = "title,abstract,year,url,externalIds,publicationDate,authors"
 QUERY = (
     "solid-state battery OR lithium metal anode OR sodium-ion battery OR "
     "silicon anode OR cathode material OR battery recycling OR "
-    "grid energy storage OR lithium-sulfur battery"
+    "grid energy storage OR stationary storage OR battery management system OR "
+    "fast charging OR lithium-sulfur battery OR separator OR electrolyte additive"
 )
 
 
